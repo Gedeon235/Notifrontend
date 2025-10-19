@@ -1,0 +1,193 @@
+import { useEffect, useState } from 'react';
+import type { Dossier, Demarche } from '../types';
+import { dossiersAPI, demarchesAPI } from '../services/api';
+import {
+  Users,
+  FileText,
+  DollarSign,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  TrendingUp
+} from 'lucide-react';
+
+const AdminDashboard: React.FC = () => {
+  const [stats, setStats] = useState({
+    totalDossiers: 0,
+    dossiersEnCours: 0,
+    dossiersTermines: 0,
+    revenus: 0
+  });
+  const [recentDossiers, setRecentDossiers] = useState<Dossier[]>([]);
+  const [demarches, setDemarches] = useState<Demarche[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      const [dossiersResponse, demarchesResponse] = await Promise.all([
+        dossiersAPI.getAll({ page: 1, limit: 10 }),
+        demarchesAPI.getAll()
+      ]);
+
+      const dossiers = dossiersResponse.data.dossiers;
+      
+      // Calcul des statistiques
+      const totalDossiers = dossiersResponse.data.totalCount;
+      const dossiersEnCours = dossiers.filter((d: any) => 
+        ['soumis', 'en_cours', 'en_attente'].includes(d.statut)
+      ).length;
+      const dossiersTermines = dossiers.filter((d: any) => 
+        ['termine', 'approuve'].includes(d.statut)
+      ).length;
+      const revenus = dossiers.reduce((total: number, dossier: Dossier) => {
+        return total + (dossier.Demarche?.frais || 0);
+      }, 0);
+
+      setStats({
+        totalDossiers,
+        dossiersEnCours,
+        dossiersTermines,
+        revenus
+      });
+      
+      setRecentDossiers(dossiers);
+      setDemarches(demarchesResponse.data.demarches);
+    } catch (error) {
+      console.error('Erreur chargement dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatutColor = (statut: string) => {
+    const colors = {
+      soumis: 'bg-blue-100 text-blue-800',
+      en_cours: 'bg-yellow-100 text-yellow-800',
+      en_attente: 'bg-orange-100 text-orange-800',
+      approuve: 'bg-green-100 text-green-800',
+      rejete: 'bg-red-100 text-red-800',
+      termine: 'bg-purple-100 text-purple-800'
+    };
+    return colors[statut as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Tableau de Bord Administratif</h1>
+        <p className="text-gray-600">Vue d'ensemble des activités du système</p>
+      </div>
+
+      {/* Cartes de statistiques */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="card">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+              <FileText className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Dossiers</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalDossiers}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
+              <Clock className="w-6 h-6 text-yellow-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">En Cours</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.dossiersEnCours}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Terminés</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.dossiersTermines}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+              <DollarSign className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Revenus</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.revenus.toLocaleString()} FCFA</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Dossiers récents */}
+        <div className="card">
+          <h2 className="font-semibold text-gray-900 mb-4">Dossiers Récents</h2>
+          <div className="space-y-3">
+            {recentDossiers.slice(0, 5).map((dossier) => (
+              <div key={dossier.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">
+                    {dossier.Demarche?.nom}
+                  </p>
+                  <p className="text-xs text-gray-500">{dossier.numeroDossier}</p>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatutColor(dossier.statut)}`}>
+                  {dossier.statut.replace('_', ' ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Démarches disponibles */}
+        <div className="card">
+          <h2 className="font-semibold text-gray-900 mb-4">Démarches Disponibles</h2>
+          <div className="space-y-3">
+            {demarches.slice(0, 5).map((demarche) => (
+              <div key={demarche.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">
+                    {demarche.nom}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {demarche.dureeEstimee} jours • {demarche.frais} FCFA
+                  </p>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  demarche.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {demarche.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
