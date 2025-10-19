@@ -7,7 +7,6 @@ import DemarcheDetail from './pages/DemarcheDetail'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import MesDossiers from './pages/MesDossiers'
-import './App.css'
 
 function App() {
   return (

@@ -1,9 +1,11 @@
+
 import React from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
+import type { ReactNode } from 'react'
 
 interface LayoutProps {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
@@ -17,7 +19,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -77,7 +78,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </nav>
 
-      {/* Contenu principal */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {children}
       </main>

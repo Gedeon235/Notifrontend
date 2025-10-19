@@ -1,193 +1,141 @@
-import { useEffect, useState } from 'react';
-import type { Dossier, Demarche } from '../types';
-import { dossiersAPI, demarchesAPI } from '../services/api';
-import {
-  Users,
-  FileText,
-  DollarSign,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  TrendingUp
-} from 'lucide-react';
 
-const AdminDashboard: React.FC = () => {
-  const [stats, setStats] = useState({
-    totalDossiers: 0,
-    dossiersEnCours: 0,
-    dossiersTermines: 0,
-    revenus: 0
-  });
-  const [recentDossiers, setRecentDossiers] = useState<Dossier[]>([]);
-  const [demarches, setDemarches] = useState<Demarche[]>([]);
-  const [loading, setLoading] = useState(true);
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import type { Demarche } from '../types'
+import { demarchesAPI } from '../services/api'
+import { Search, Filter, Clock, DollarSign } from 'lucide-react'
+
+const Demarches: React.FC = () => {
+  const [demarches, setDemarches] = useState<Demarche[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    loadDemarches()
+  }, [])
 
-  const loadDashboardData = async () => {
+  const loadDemarches = async () => {
     try {
-      const [dossiersResponse, demarchesResponse] = await Promise.all([
-        dossiersAPI.getAll({ page: 1, limit: 10 }),
-        demarchesAPI.getAll()
-      ]);
-
-      const dossiers = dossiersResponse.data.dossiers;
-      
-      // Calcul des statistiques
-      const totalDossiers = dossiersResponse.data.totalCount;
-      const dossiersEnCours = dossiers.filter((d: any) => 
-        ['soumis', 'en_cours', 'en_attente'].includes(d.statut)
-      ).length;
-      const dossiersTermines = dossiers.filter((d: any) => 
-        ['termine', 'approuve'].includes(d.statut)
-      ).length;
-      const revenus = dossiers.reduce((total: number, dossier: Dossier) => {
-        return total + (dossier.Demarche?.frais || 0);
-      }, 0);
-
-      setStats({
-        totalDossiers,
-        dossiersEnCours,
-        dossiersTermines,
-        revenus
-      });
-      
-      setRecentDossiers(dossiers);
-      setDemarches(demarchesResponse.data.demarches);
+      const response = await demarchesAPI.getAll()
+      // Assurez-vous que response.data est bien un tableau de Demarche
+      setDemarches(response.data || [])
     } catch (error) {
-      console.error('Erreur chargement dashboard:', error);
+      console.error('Erreur chargement démarches:', error)
+      setDemarches([]) // Fallback à un tableau vide en cas d'erreur
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const getStatutColor = (statut: string) => {
-    const colors = {
-      soumis: 'bg-blue-100 text-blue-800',
-      en_cours: 'bg-yellow-100 text-yellow-800',
-      en_attente: 'bg-orange-100 text-orange-800',
-      approuve: 'bg-green-100 text-green-800',
-      rejete: 'bg-red-100 text-red-800',
-      termine: 'bg-purple-100 text-purple-800'
-    };
-    return colors[statut as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
+  // Utilisez le tableau 'demarches' directement, pas 'demarches.demarches'
+  const categories = [...new Set(demarches.map(d => d.categorie))]
+
+  const filteredDemarches = demarches.filter(demarche => {
+    const matchesSearch = demarche.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         demarche.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = !selectedCategory || demarche.categorie === selectedCategory
+    return matchesSearch && matchesCategory && demarche.isActive
+  })
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tableau de Bord Administratif</h1>
-        <p className="text-gray-600">Vue d'ensemble des activités du système</p>
+    <div className="space-y-6 p-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">Démarches Administratives</h1>
       </div>
 
-      {/* Cartes de statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-              <FileText className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Dossiers</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalDossiers}</p>
-            </div>
-          </div>
+      {/* Filtres et recherche */}
+      <div className="grid md:grid-cols-3 gap-4">
+        <div className="relative">
+          <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
+          <input
+            type="text"
+            placeholder="Rechercher une démarche..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input-field pl-10"
+          />
         </div>
+        
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="input-field"
+        >
+          <option value="">Toutes les catégories</option>
+          {categories.map(category => (
+            <option key={category} value={category}>
+              {category.charAt(0).toUpperCase() + category.slice(1)}
+            </option>
+          ))}
+        </select>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">En Cours</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.dossiersEnCours}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Terminés</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.dossiersTermines}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-              <DollarSign className="w-6 h-6 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Revenus</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.revenus.toLocaleString()} FCFA</p>
-            </div>
-          </div>
+        <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <Filter className="w-4 h-4" />
+          <span>{filteredDemarches.length} démarche(s) trouvée(s)</span>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Dossiers récents */}
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 mb-4">Dossiers Récents</h2>
-          <div className="space-y-3">
-            {recentDossiers.slice(0, 5).map((dossier) => (
-              <div key={dossier.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">
-                    {dossier.Demarche?.nom}
-                  </p>
-                  <p className="text-xs text-gray-500">{dossier.numeroDossier}</p>
-                </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatutColor(dossier.statut)}`}>
-                  {dossier.statut.replace('_', ' ')}
-                </span>
+      {/* Liste des démarches */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredDemarches.map((demarche) => (
+          <Link
+            key={demarche.id}
+            to={`/demarches/${demarche.id}`}
+            className="card hover:shadow-md transition-shadow duration-200 block"
+          >
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-semibold text-gray-900 text-lg">{demarche.nom}</h3>
+              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full capitalize">
+                {demarche.categorie}
+              </span>
+            </div>
+            
+            <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+              {demarche.description}
+            </p>
+
+            <div className="flex items-center justify-between text-sm text-gray-500">
+              <div className="flex items-center space-x-1">
+                <Clock className="w-4 h-4" />
+                <span>{demarche.dureeEstimee} jours</span>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Démarches disponibles */}
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 mb-4">Démarches Disponibles</h2>
-          <div className="space-y-3">
-            {demarches.slice(0, 5).map((demarche) => (
-              <div key={demarche.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">
-                    {demarche.nom}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {demarche.dureeEstimee} jours • {demarche.frais} FCFA
-                  </p>
-                </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  demarche.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {demarche.isActive ? 'Active' : 'Inactive'}
-                </span>
+              <div className="flex items-center space-x-1">
+                <DollarSign className="w-4 h-4" />
+                <span className="font-medium text-gray-900">{demarche.frais} FCFA</span>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+
+            <div className="mt-4">
+              <button className="btn-primary w-full text-sm">
+                Démarrer la démarche
+              </button>
+            </div>
+          </Link>
+        ))}
       </div>
+
+      {filteredDemarches.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500">Aucune démarche trouvée</p>
+          <button
+            onClick={() => { setSearchTerm(''); setSelectedCategory(''); }}
+            className="btn-secondary mt-2"
+          >
+            Réinitialiser les filtres
+          </button>
+        </div>
+      )}
     </div>
-  );
-};
+  )
+}
 
-export default AdminDashboard;
+export default Demarches

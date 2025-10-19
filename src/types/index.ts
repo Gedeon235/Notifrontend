@@ -1,19 +1,18 @@
-// src/types/index.ts
-
 export interface User {
   id: string;
   email: string;
   nom: string;
   prenom: string;
   role: string;
+  telephone?: string;
 }
 
 export interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: RegisterData) => Promise<void>; // Ajoutez cette ligne
+  register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
-  isLoading: boolean;
+  loading: boolean;
 }
 
 export interface RegisterData {
@@ -32,7 +31,7 @@ export interface Demarche {
   frais: number;
   categorie: string;
   documentsRequis: string[];
-  isActive: boolean; // Ajoutez cette ligne
+  isActive: boolean;
 }
 
 export interface Dossier {
@@ -50,10 +49,9 @@ export interface Dossier {
   frais: number;
   fraisLivraison?: number;
   commentaires?: string;
-  paiements?: Paiement[]; // Ajoutez cette ligne (avec minuscule)
+  paiements?: Paiement[];
 }
 
-// Ajoutez aussi l'interface Paiement
 export interface Paiement {
   id: string;
   dossierId: string;

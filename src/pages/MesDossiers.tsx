@@ -59,7 +59,7 @@ const MesDossiers: React.FC = () => {
 
   const filteredDossiers = dossiers.filter(dossier => {
     const matchesSearch = dossier.numeroDossier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         dossier.Demarche?.nom.toLowerCase().includes(searchTerm.toLowerCase());
+                         dossier.demarche?.nom.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = !filterStatut || dossier.statut === filterStatut;
     return matchesSearch && matchesFilter;
   });
@@ -132,7 +132,7 @@ const MesDossiers: React.FC = () => {
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
                     <h3 className="font-semibold text-gray-900">
-                      {dossier.Demarche?.nom}
+                      {dossier.demarche?.nom}
                     </h3>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(dossier.statut)}`}>
                       <StatutIcon className="w-3 h-3 mr-1" />
@@ -153,7 +153,7 @@ const MesDossiers: React.FC = () => {
                     
                     <div>
                       <span className="font-medium">Frais:</span>
-                      <div>{dossier.Demarche?.frais} FCFA</div>
+                      <div>{dossier.demarche?.frais} FCFA</div>
                     </div>
                     
                     <div>

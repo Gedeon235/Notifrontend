@@ -1,32 +1,34 @@
-import axios from 'axios';
-import type { RegisterData } from '../types';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+import axios from 'axios'
+import type { RegisterData } from '../types'
+import { mockDemarches } from './mockData'
+
+const API_BASE_URL = 'http://localhost:5000/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-});
+})
 
 // Intercepteur pour ajouter le token aux requêtes
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token')
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`
   }
-  return config;
-});
+  return config
+})
 
 // Intercepteur pour gérer les erreurs d'authentification
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      localStorage.removeItem('token')
+      window.location.href = '/login'
     }
-    return Promise.reject(error);
+    return Promise.reject(error)
   }
-);
+)
 
 export const authAPI = {
   login: (email: string, password: string) => 
@@ -37,15 +39,15 @@ export const authAPI = {
   
   getProfile: () => 
     api.get('/auth/me'),
-};
+}
 
 export const demarchesAPI = {
   getAll: () => 
-    api.get('/demarches'),
+    Promise.resolve({ data: mockDemarches }), // Données mockées temporairement
   
   getById: (id: string) => 
-    api.get(`/demarches/${id}`),
-};
+    Promise.resolve({ data: mockDemarches.find(d => d.id === id) }),
+}
 
 export const dossiersAPI = {
   create: (formData: FormData) => 
@@ -64,6 +66,6 @@ export const dossiersAPI = {
   
   updateStatus: (id: string, data: any) => 
     api.patch(`/dossiers/${id}/statut`, data),
-};
+}
 
-export default api;
+export default api
